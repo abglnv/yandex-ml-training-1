@@ -12,7 +12,7 @@ class SimplifiedBaggingRegressor:
         self.indices_list = []
         data_length = len(data)
         for bag in range(self.num_bags):
-            # Your Code Here
+            self.indices_list.append(np.random.choice(range(data_length), size=data_length, replace=True))
         
     def fit(self, model_constructor, data, target):
         '''
@@ -32,7 +32,7 @@ class SimplifiedBaggingRegressor:
         self.models_list = []
         for bag in range(self.num_bags):
             model = model_constructor()
-            data_bag, target_bag = # Your Code Here
+            data_bag, target_bag = data[self.indices_list[bag]], target[self.indices_list[bag]]
             self.models_list.append(model.fit(data_bag, target_bag)) # store fitted models here
         if self.oob:
             self.data = data
@@ -42,7 +42,7 @@ class SimplifiedBaggingRegressor:
         '''
         Get average prediction for every object from passed dataset
         '''
-        # Your code here
+        return np.mean([model.predict(data) for model in self.models_list], axis=0)
     
     def _get_oob_predictions_from_every_model(self):
         '''
@@ -51,6 +51,11 @@ class SimplifiedBaggingRegressor:
         '''
         list_of_predictions_lists = [[] for _ in range(len(self.data))]
         # Your Code Here
+        for i in range(len(self.data)): 
+            for j in range(len(self.models_list)):
+                if i not in self.indices_list[j]:
+                    pred = self.models_list[j].predict(self.data[i].reshape(1, -1))[0]
+                    list_of_predictions_lists[i].append(pred)
         
         self.list_of_predictions_lists = np.array(list_of_predictions_lists, dtype=object)
     
@@ -60,12 +65,11 @@ class SimplifiedBaggingRegressor:
         If object has been used in all bags on training phase, return None instead of prediction
         '''
         self._get_oob_predictions_from_every_model()
-        self.oob_predictions = # Your Code Here
-        
+        self.oob_predictions = [ np.mean(preds) if len(preds) > 0 else None for preds in self.list_of_predictions_lists ]        
         
     def OOB_score(self):
         '''
         Compute mean square error for all objects, which have at least one prediction
         '''
         self._get_averaged_oob_predictions()
-        return # Your Code Here
+        return np.mean([ (self.target[i] - oob_pred)**2 for i, oob_pred in enumerate(self.oob_predictions) if oob_pred is not None ])
